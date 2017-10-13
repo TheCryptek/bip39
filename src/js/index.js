@@ -14,6 +14,7 @@
     var showPubKey = true;
     var showPrivKey = true;
     var showQr = false;
+    var litecoinUseLtub = false;
 
     var entropyChangeTimeoutEvent = null;
     var phraseChangeTimeoutEvent = null;
@@ -37,12 +38,15 @@
     DOM.entropyWordCount = DOM.entropyContainer.find(".word-count");
     DOM.entropyBinary = DOM.entropyContainer.find(".binary");
     DOM.entropyMnemonicLength = DOM.entropyContainer.find(".mnemonic-length");
+    DOM.entropyFilterWarning = DOM.entropyContainer.find(".filter-warning");
     DOM.phrase = $(".phrase");
     DOM.passphrase = $(".passphrase");
     DOM.generateContainer = $(".generate-container");
     DOM.generate = $(".generate");
     DOM.seed = $(".seed");
     DOM.rootKey = $(".root-key");
+    DOM.litecoinLtubContainer = $(".litecoin-ltub-container");
+    DOM.litecoinUseLtub = $(".litecoin-use-ltub");
     DOM.extendedPrivKey = $(".extended-priv-key");
     DOM.extendedPubKey = $(".extended-pub-key");
     DOM.bip32tab = $("#bip32-tab");
@@ -70,6 +74,7 @@
     DOM.bip49change = $("#bip49 .change");
     DOM.generatedStrength = $(".generate-container .strength");
     DOM.hardenedAddresses = $(".hardened-addresses");
+    DOM.useP2wpkhNestedInP2sh = $(".p2wpkh-nested-in-p2sh");
     DOM.addresses = $(".addresses");
     DOM.rowsToAdd = $(".rows-to-add");
     DOM.more = $(".more");
@@ -98,6 +103,7 @@
         DOM.generate.on("click", generateClicked);
         DOM.more.on("click", showMore);
         DOM.rootKey.on("input", delayedRootKeyChanged);
+        DOM.litecoinUseLtub.on("change", litecoinUseLtubChanged);
         DOM.bip32path.on("input", calcForDerivationPath);
         DOM.bip44account.on("input", calcForDerivationPath);
         DOM.bip44change.on("input", calcForDerivationPath);
@@ -105,6 +111,7 @@
         DOM.bip49change.on("input", calcForDerivationPath);
         DOM.tab.on("shown.bs.tab", calcForDerivationPath);
         DOM.hardenedAddresses.on("change", calcForDerivationPath);
+        DOM.useP2wpkhNestedInP2sh.on("change", calcForDerivationPath);
         DOM.indexToggle.on("click", toggleIndexes);
         DOM.addressToggle.on("click", toggleAddresses);
         DOM.publicKeyToggle.on("click", togglePublicKeys);
@@ -123,14 +130,15 @@
     function networkChanged(e) {
         clearDerivedKeys();
         clearAddressesList();
+        DOM.litecoinLtubContainer.addClass("hidden");
         var networkIndex = e.target.value;
         var network = networks[networkIndex];
         network.onSelect();
-        if (network.bip49available) {
-            showBip49();
+        if (network.p2wpkhNestedInP2shAvailable) {
+            showP2wpkhNestedInP2shAvailable();
         }
         else {
-            hideBip49();
+            showP2wpkhNestedInP2shUnavailable();
         }
         if (seed != null) {
             phraseChanged();
@@ -262,7 +270,6 @@
     function rootKeyChanged() {
         showPending();
         hideValidationError();
-        // Validate the root key TODO
         var rootKeyBase58 = DOM.rootKey.val();
         var errorText = validateRootKey(rootKeyBase58);
         if (errorText) {
@@ -272,6 +279,17 @@
         // Calculate and display
         calcBip32RootKeyFromBase58(rootKeyBase58);
         calcForDerivationPath();
+    }
+
+    function litecoinUseLtubChanged() {
+        litecoinUseLtub = DOM.litecoinUseLtub.prop("checked");
+        if (litecoinUseLtub) {
+            network = bitcoinjs.bitcoin.networks.litecoinLtub;
+        }
+        else {
+            network = bitcoinjs.bitcoin.networks.litecoin;
+        }
+        phraseChanged();
     }
 
     function calcForDerivationPath() {
@@ -444,7 +462,7 @@
 
     function validateRootKey(rootKeyBase58) {
         try {
-            bitcoinjs.bitcoin.HDNode.fromBase58(rootKeyBase58);
+            bitcoinjs.bitcoin.HDNode.fromBase58(rootKeyBase58, network);
         }
         catch (e) {
             return "Invalid root key";
@@ -532,7 +550,9 @@
             return "No root key";
         }
         // Check no hardened derivation path when using xpub keys
-        var hardened = path.indexOf("'") > -1;
+        var hardenedPath = path.indexOf("'") > -1;
+        var hardenedAddresses = bip32TabSelected() && DOM.hardenedAddresses.prop("checked");
+        var hardened = hardenedPath || hardenedAddresses;
         var isXpubkey = bip32RootKey.isNeutered();
         if (hardened && isXpubkey) {
             return "Hardened derivation path is invalid with xpub key";
@@ -620,8 +640,8 @@
         var self = this;
         this.shouldGenerate = true;
         var useHardenedAddresses = DOM.hardenedAddresses.prop("checked");
-        var isBip49 = bip49TabSelected();
-        var bip49available = networkHasBip49();
+        var isP2wpkhNestedInP2sh = bip49TabSelected() || (bip32TabSelected() && useP2wpkhNestedInP2sh());
+        var p2wpkhNestedInP2shAvailable = networkHasBip49();
 
         function init() {
             calculateValues();
@@ -666,8 +686,8 @@
                     address = convertRippleAdrr(address);
                 }
                 // BIP49 addresses are different
-                if (isBip49) {
-                    if (!bip49available) {
+                if (isP2wpkhNestedInP2sh) {
+                    if (!p2wpkhNestedInP2shAvailable) {
                         return;
                     }
                     var keyhash = bitcoinjs.bitcoin.crypto.hash160(key.getPublicKeyBuffer());
@@ -1042,6 +1062,16 @@
         DOM.entropyWordCount.text(wordCount);
         DOM.entropyBinary.text(entropy.binaryStr);
         DOM.entropyBitsPerEvent.text(bitsPerEvent);
+        // detect and warn of filtering
+        var rawNoSpaces = DOM.entropy.val().replace(/\s/g, "");
+        var cleanNoSpaces = entropy.cleanStr.replace(/\s/g, "");
+        var isFiltered = rawNoSpaces.length != cleanNoSpaces.length;
+        if (isFiltered) {
+            DOM.entropyFilterWarning.removeClass('hidden');
+        }
+        else {
+            DOM.entropyFilterWarning.addClass('hidden');
+        }
     }
 
     function getEntropyTypeStr(entropy) {
@@ -1147,8 +1177,12 @@
         return DOM.bip32tab.hasClass("active");
     }
 
+    function useP2wpkhNestedInP2sh() {
+        return DOM.useP2wpkhNestedInP2sh.prop("checked");
+    }
+
     function networkHasBip49() {
-        return networks[DOM.network.val()].bip49available;
+        return networks[DOM.network.val()].p2wpkhNestedInP2shAvailable;
     }
 
     function bip49TabSelected() {
@@ -1160,20 +1194,23 @@
         DOM.bip49coin.val(coinValue);
     }
 
-    function showBip49() {
+    function showP2wpkhNestedInP2shAvailable() {
         DOM.bip49unavailable.addClass("hidden");
         DOM.bip49available.removeClass("hidden");
+        DOM.useP2wpkhNestedInP2sh.prop("disabled", false);
     }
 
-    function hideBip49() {
+    function showP2wpkhNestedInP2shUnavailable() {
         DOM.bip49available.addClass("hidden");
         DOM.bip49unavailable.removeClass("hidden");
+        DOM.useP2wpkhNestedInP2sh.prop("disabled", true);
+        DOM.useP2wpkhNestedInP2sh.prop("checked", false);
     }
 
     var networks = [
         {
             name: "BCH - Bitcoin Cash",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.bitcoin;
                 setHdCoin(145);
@@ -1181,7 +1218,7 @@
         },
         {
             name: "BTC - Bitcoin",
-            bip49available: true,
+            p2wpkhNestedInP2shAvailable: true,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.bitcoin;
                 setHdCoin(0);
@@ -1189,7 +1226,7 @@
         },
         {
             name: "BTC - Bitcoin Testnet",
-            bip49available: true,
+            p2wpkhNestedInP2shAvailable: true,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.testnet;
                 setHdCoin(1);
@@ -1197,7 +1234,7 @@
         },
         {
             name: "CLAM - Clams",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.clam;
                 setHdCoin(23);
@@ -1205,7 +1242,7 @@
         },
         {
             name: "CRW - Crown",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.crown;
                 setHdCoin(72);
@@ -1213,7 +1250,7 @@
         },
         {
             name: "DASH - Dash",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.dash;
                 setHdCoin(5);
@@ -1221,7 +1258,7 @@
         },
         {
             name: "DASH - Dash Testnet",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.dashtn;
                 setHdCoin(1);
@@ -1229,7 +1266,7 @@
         },
         {
             name: "DOGE - Dogecoin",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.dogecoin;
                 setHdCoin(3);
@@ -1237,15 +1274,23 @@
         },
         {
             name: "ETH - Ethereum",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.bitcoin;
                 setHdCoin(60);
             },
         },
         {
+            name: "FJC - Fujicoin",
+            p2wpkhNestedInP2shAvailable: false,
+            onSelect: function() {
+                network = bitcoinjs.bitcoin.networks.fujicoin;
+                setHdCoin(75);
+            },
+        },
+        {
             name: "GAME - GameCredits",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.game;
                 setHdCoin(101);
@@ -1253,7 +1298,7 @@
         },
         {
             name: "JBS - Jumbucks",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.jumbucks;
                 setHdCoin(26);
@@ -1261,15 +1306,16 @@
         },
         {
             name: "LTC - Litecoin",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.litecoin;
                 setHdCoin(2);
+                DOM.litecoinLtubContainer.removeClass("hidden");
             },
         },
         {
             name: "MAZA - Maza",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.maza;
                 setHdCoin(13);
@@ -1278,7 +1324,7 @@
 
         {
             name: "NMC - Namecoin",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.namecoin;
                 setHdCoin(7);
@@ -1286,7 +1332,7 @@
         },
         {
             name: "PIVX - PIVX",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.pivx;
                 setHdCoin(119);
@@ -1294,7 +1340,7 @@
         },
         {
             name: "PIVX - PIVX Testnet",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.pivxtestnet;
                 setHdCoin(1);
@@ -1302,7 +1348,7 @@
         },
         {
             name: "PPC - Peercoin",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.peercoin;
                 setHdCoin(6);
@@ -1310,7 +1356,7 @@
         },
         {
             name: "SDC - ShadowCash",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.shadow;
                 setHdCoin(35);
@@ -1318,7 +1364,7 @@
         },
         {
             name: "SDC - ShadowCash Testnet",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.shadowtn;
                 setHdCoin(1);
@@ -1326,7 +1372,7 @@
         },
         {
             name: "SLM - Slimcoin",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.slimcoin;
                 setHdCoin(63);
@@ -1334,15 +1380,23 @@
         },
         {
             name: "SLM - Slimcoin Testnet",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.slimcointn;
                 setHdCoin(111);
             },
         },
         {
+            name: "USNBT - NuBits",
+            p2wpkhNestedInP2shAvailable: false,
+            onSelect: function() {
+                network = bitcoinjs.bitcoin.networks.nubits;
+                setHdCoin(12);
+            },
+        },
+        {
             name: "VIA - Viacoin",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.viacoin;
                 setHdCoin(14);
@@ -1350,7 +1404,7 @@
         },
         {
             name: "VIA - Viacoin Testnet",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.viacointestnet;
                 setHdCoin(1);
@@ -1358,7 +1412,7 @@
         },
         {
             name: "XMY - Myriadcoin",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.myriadcoin;
                 setHdCoin(90);
@@ -1366,7 +1420,7 @@
         },
         {
             name: "XRP - Ripple",
-            bip49available: false,
+            p2wpkhNestedInP2shAvailable: false,
             onSelect: function() {
                 network = bitcoinjs.bitcoin.networks.bitcoin;
                 setHdCoin(144);

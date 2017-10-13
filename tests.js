@@ -1022,6 +1022,66 @@ page.open(url, function(status) {
 });
 },
 
+// Network can be set to fujicoin
+function() {
+page.open(url, function(status) {
+    // set the phrase and coin
+    var expected = "FgiaLpG7C99DyR4WnPxXedRVHXSfKzUDhF";
+    page.evaluate(function() {
+        $(".phrase").val("abandon abandon ability");
+        $(".phrase").trigger("input");
+        $(".network option[selected]").removeAttr("selected");
+        $(".network option").filter(function() {
+            return $(this).html() == "FJC - Fujicoin";
+        }).prop("selected", true);
+        $(".network").trigger("change");
+    });
+    // check the address is generated correctly
+    waitForGenerate(function() {
+        var actual = page.evaluate(function() {
+            return $(".address:first").text();
+        });
+        if (actual != expected) {
+            console.log("Fujicoin address is incorrect");
+            console.log("Expected: " + expected);
+            console.log("Actual: " + actual);
+            fail();
+        }
+        next();
+    });
+});
+},
+
+// Network can be set to nubits
+function() {
+page.open(url, function(status) {
+    // set the phrase and coin
+    var expected = "BLxkabXuZSJSdesLD7KxZdqovd4YwyBTU6";
+    page.evaluate(function() {
+        $(".phrase").val("abandon abandon ability");
+        $(".phrase").trigger("input");
+        $(".network option[selected]").removeAttr("selected");
+        $(".network option").filter(function() {
+            return $(this).html() == "USNBT - NuBits";
+        }).prop("selected", true);
+        $(".network").trigger("change");
+    });
+    // check the address is generated correctly
+    waitForGenerate(function() {
+        var actual = page.evaluate(function() {
+            return $(".address:first").text();
+        });
+        if (actual != expected) {
+            console.log("NuBits address is incorrect");
+            console.log("Expected: " + expected);
+            console.log("Actual: " + actual);
+            fail();
+        }
+        next();
+    });
+});
+},
+
 // BIP39 seed is set from phrase
 function() {
 page.open(url, function(status) {
@@ -4177,6 +4237,165 @@ page.open(url, function(status) {
             });
             if (addressCount != 0) {
                 console.log("Clearing mnemonic should not allow addresses to be generated");
+                fail();
+            }
+            next();
+        });
+    });
+});
+},
+
+// Github issue 95
+// error trying to generate addresses from xpub with hardened derivation
+function() {
+page.open(url, function(status) {
+    // set the phrase
+    page.evaluate(function() {
+        // Use bip32 tab with hardened addresses
+        $(".hardened-addresses").prop("checked", true);
+        $("#bip32-tab a").click();
+        // set xpub for account 0 of bip44 for 'abandon abandon ability'
+        var bip44AccountXpub = "xpub6CzDCPbtLrrn4VpVbyyQLHbdSMpZoHN4iuW64VswCyEpfjM2mJGdaHJ2DyuZwtst96E16VvcERb8BBeJdHSCVmAq9RhtRQg6eAZFrTKCNqf";
+        $("#root-key").val(bip44AccountXpub);
+        $("#root-key").trigger("input");
+    });
+    waitForFeedback(function() {
+        // check the error message shows
+        var expected = "Hardened derivation path is invalid with xpub key";
+        var actual = page.evaluate(function() {
+            return $(".feedback").text();
+        });
+        if (actual != expected) {
+            console.log("xpub key with hardened addresses does not show feedback");
+            console.log("Expected: " + expected);
+            console.log("Actual: " + actual);
+            fail();
+        }
+        next();
+    });
+});
+},
+
+// Litecoin uses xprv by default, and can optionally be set to ltpv
+// github issue 96
+// https://github.com/iancoleman/bip39/issues/96
+// Issue with extended keys on Litecoin
+function() {
+page.open(url, function(status) {
+    // set the phrase and coin
+    page.evaluate(function() {
+        $(".phrase").val("abandon abandon ability");
+        $(".network option[selected]").removeAttr("selected");
+        $(".network option").filter(function() {
+            return $(this).html() == "LTC - Litecoin";
+        }).prop("selected", true);
+        $(".network").trigger("change");
+        $(".phrase").trigger("input");
+    });
+    // check the extended key is generated correctly
+    waitForGenerate(function() {
+        var expected = "xprv9s21ZrQH143K2jkGDCeTLgRewT9F2pH5JZs2zDmmjXes34geVnFiuNa8KTvY5WoYvdn4Ag6oYRoB6cXtc43NgJAEqDXf51xPm6fhiMCKwpi";
+        var actual = page.evaluate(function() {
+            return $(".root-key").val();
+        });
+        if (actual != expected) {
+            console.log("Litecoin root key does not default to xprv");
+            console.log("Expected: " + expected);
+            console.log("Actual: " + actual);
+            fail();
+        }
+        // set litecoin to use ltub
+        page.evaluate(function() {
+            $(".addresses").empty();
+            $(".litecoin-use-ltub").prop("checked", true);
+            $(".litecoin-use-ltub").trigger("change");
+        });
+        waitForGenerate(function() {
+            var expected = "Ltpv71G8qDifUiNesiPqf6h5V6eQ8ic77oxQiYtawiACjBEx3sTXNR2HGDGnHETYxESjqkMLFBkKhWVq67ey1B2MKQXannUqNy1RZVHbmrEjnEU";
+            var actual = page.evaluate(function() {
+                return $(".root-key").val();
+            });
+            if (actual != expected) {
+                console.log("Litecoin root key cannot be set to use ltub");
+                console.log("Expected: " + expected);
+                console.log("Actual: " + actual);
+                fail();
+            }
+            next();
+        });
+    });
+});
+},
+
+// BIP32 tab can use P2WPKH Nested In P2SH
+// github issue 91 part 2
+// https://github.com/iancoleman/bip39/issues/91
+// generate new addresses from xpub?
+function() {
+page.open(url, function(status) {
+    // set the xpub and coin and select bip32 tab with p2wpkh addresses
+    page.evaluate(function() {
+        // use p2wpkh addresses
+        $(".p2wpkh-nested-in-p2sh").prop("checked", true);
+        // use bip32 tab
+        $("#bip32-tab a").click();
+        // use testnet
+        $(".network option[selected]").removeAttr("selected");
+        $(".network option").filter(function() {
+            return $(this).html() == "BTC - Bitcoin Testnet";
+        }).prop("selected", true);
+        $(".network").trigger("change");
+        // Set root xpub to BIP49 official test vector account 0
+        $(".root-key").val("tpubDD7tXK8KeQ3YY83yWq755fHY2JW8Ha8Q765tknUM5rSvjPcGWfUppDFMpQ1ScziKfW3ZNtZvAD7M3u7bSs7HofjTD3KP3YxPK7X6hwV8Rk2");
+        $(".root-key").trigger("input");
+    });
+    // check the address is generated correctly
+    waitForGenerate(function() {
+        var expected = "2Mww8dCYPUpKHofjgcXcBCEGmniw9CoaiD2";
+        var actual = page.evaluate(function() {
+            return $(".address:first").text();
+        });
+        if (actual != expected) {
+            console.log("BIP32 tab cannot generate P2WPKH Nested In P2SH addresses");
+            console.log("Expected: " + expected);
+            console.log("Actual: " + actual);
+            fail();
+        }
+        next();
+    });
+});
+},
+
+// github issue 99
+// https://github.com/iancoleman/bip39/issues/99#issuecomment-327094159
+// "warn me emphatically when they have detected invalid input" to the entropy field
+// A warning is shown when entropy is filtered and discarded
+function() {
+page.open(url, function(status) {
+    // use entropy
+    page.evaluate(function() {
+        $(".use-entropy").prop("checked", true).trigger("change");
+        $(".entropy").val("00000000 00000000 00000000 00000000").trigger("input");
+    });
+    // check the filter warning does not show
+    waitForGenerate(function() {
+        var warningIsHidden = page.evaluate(function() {
+            return $(".entropy-container .filter-warning").hasClass("hidden");
+        });
+        if (!warningIsHidden) {
+            console.log("Entropy filter warning is showing when it should not");
+            fail();
+        }
+        page.evaluate(function() {
+            $(".entropy").val("10000000 zxcvbn 00000000 00000000 00000000").trigger("input");
+        });
+        // check the filter warning shows
+        waitForEntropyFeedback(function() {
+            var warningIsHidden = page.evaluate(function() {
+                return $(".entropy-container .filter-warning").hasClass("hidden");
+            });
+            if (warningIsHidden) {
+                console.log("Entropy filter warning is not showing when it should");
                 fail();
             }
             next();
