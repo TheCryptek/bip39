@@ -3,118 +3,19 @@
     <head lang="en">
         <meta charset="utf-8" />
         <title>BIP39 - Mnemonic Code</title>
-        <link rel="stylesheet" href="css/bootstrap.min.css">
+        <link rel="stylesheet" href="css/bootstrap-3.3.7.css">
+        <link rel="stylesheet" href="css/app.css">
         <meta content="Mnemonic code for generating deterministic keys" name="description"/>
         <meta content="width=device-width, initial-scale=1.0" name="viewport" />
         <meta content="bitcoin mnemonic converter" name="description" />
         <meta content="Ian Coleman" name="author" />
         <link type="image/x-icon" rel="icon" href="data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQEAYAAABPYyMiAAAABmJLR0T///////8JWPfcAAAACXBIWXMAAABIAAAASABGyWs+AAAAF0lEQVRIx2NgGAWjYBSMglEwCkbBSAcACBAAAeaR9cIAAAAASUVORK5CYII=" />
-
-        <style>
-            body {
-                padding-bottom: 32px;
-            }
-            .form-control[readonly] {
-                cursor: text;
-            }
-            .feedback-container {
-                position: fixed;
-                top: 0;
-                width: 100%;
-                text-align: center;
-                z-index: 4;
-            }
-            .feedback {
-                display: table;
-                padding: 0.5em 1em;
-                background-color: orange;
-                margin: 0 auto;
-                font-size: 2em;
-                color: #444;
-                border: 2px solid #555;
-                border-top: 0;
-                border-bottom-left-radius: 20px 20px;
-                border-bottom-right-radius: 20px 20px;
-            }
-            .no-border {
-                border: 0;
-                box-shadow: inset 0 1px 1px rgba(0,0,0,.0);
-                -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.0);
-            }
-            .phrase {
-                word-break: keep-all;
-            }
-            .generate-container .strength {
-                /* override mobile width from bootstrap */
-                width: auto!important;
-                display: inline-block;
-            }
-            .languages a {
-                padding-left: 10px;
-            }
-            .languages a:nth-of-type(1) {
-                margin-left: -12px;
-                padding-left: 0;
-            }
-            .monospace {
-                font-family: monospace;
-            }
-            .entropy-container .filtered,
-            .entropy-container .binary {
-                word-wrap: break-word;
-            }
-            .entropy-container li {
-                padding-bottom: 5px;
-            }
-            .card-suit {
-                font-size: 19px;
-                line-height: 0;
-            }
-            .card-suit.club {
-                color: #009F00;
-            }
-            .card-suit.diamond {
-                color: #3D5DC4;
-            }
-            .card-suit.heart {
-                color: #F00;
-            }
-            .card-suit.spade {
-                color: #000;
-            }
-            .qr-container {
-                position: fixed;
-                top: 0;
-                right: 0;
-                text-align: center;
-                background-color: #FFF;
-                border: 1px solid #CCC;
-            }
-            .qr-image {
-                margin: 5px;
-            }
-            .qr-hint,
-            .qr-warning {
-                padding: 2px;
-                max-width: 150px;
-            }
-            .more-info {
-                cursor: help;
-                border-bottom: 1px dashed #000;
-                text-decoration: none;
-            }
-            .version {
-                position: absolute;
-                top: 5px;
-                right: 5px;
-            }
-        </style>
     </head>
     <body>
         <div class="container">
 
             <h1 class="text-center">Mnemonic Code Converter</h1>
-            <p class="version">v0.2.8</p>
+            <p class="version">v0.3.4</p>
             <hr>
             <div class="row">
                 <div class="col-md-12">
@@ -193,6 +94,10 @@
                                     <div class="filtered col-sm-9 form-control-static"></div>
                                     <label class="col-sm-3 control-label">Raw Binary</label>
                                     <div class="binary col-sm-9 form-control-static"></div>
+                                    <label class="col-sm-3 control-label">Binary Checksum</label>
+                                    <div class="checksum col-sm-9 form-control-static">&nbsp;</div>
+                                    <label class="col-sm-3 control-label">Word Indexes</label>
+                                    <div class="word-indexes col-sm-9 form-control-static">&nbsp;</div>
                                     <label class="col-sm-3 control-label">Mnemonic Length</label>
                                     <div class="col-sm-9">
                                         <select class="mnemonic-length form-control">
@@ -223,7 +128,7 @@
                             <div class="col-sm-10 checkbox">
                                 <label>
                                     <input type="checkbox" class="use-entropy">
-                                    <span>Supply my own source of entropy</span>
+                                    <span>Show entropy details</span>
                                 </label>
                             </div>
                         </div>
@@ -238,6 +143,7 @@
                                     <a href="#chinese_traditional"  title="Chinese (Traditional)">中文(繁體)</a>
                                     <a href="#french"  title="French">Français</a>
                                     <a href="#italian"  title="Italian">Italiano</a>
+                                    <a href="#korean"  title="Korean">한국어</a>
                                 </div>
                             </div>
                         </div>
@@ -277,7 +183,7 @@
                             <label for="litecoin-use-ltub" class="col-sm-2 control-label">Prefixes</label>
                             <div class="col-sm-10 checkbox">
                                 <label>
-                                    <input type="checkbox" id="litecoin-use-ltub" class="litecoin-use-ltub">
+                                    <input type="checkbox" id="litecoin-use-ltub" class="litecoin-use-ltub" checked="checked">
                                     Use <code>Ltpv / Ltub</code> instead of <code>xprv / xpub</code>
                                 </label>
                             </div>
@@ -300,6 +206,12 @@
                         </li>
                         <li id="bip49-tab">
                             <a href="#bip49" role="tab" data-toggle="tab">BIP49</a>
+                        </li>
+                        <li id="bip84-tab">
+                            <a href="#bip84" role="tab" data-toggle="tab">BIP84</a>
+                        </li>
+                        <li id="bip141-tab">
+                            <a href="#bip141" role="tab" data-toggle="tab">BIP141</a>
                         </li>
                     </ul>
                     <div class="derivation-type tab-content">
@@ -413,13 +325,6 @@
                                     <label class="col-sm-10">
                                         <input class="hardened-addresses" type="checkbox">
                                         <span>Use hardened addresses</span>
-                                    </label>
-                                </div>
-                                <div class="form-group">
-                                    <div class="col-sm-2"></div>
-                                    <label class="col-sm-10">
-                                        <input class="p2wpkh-nested-in-p2sh" type="checkbox">
-                                        <span>Use SegWit addresses (ie P2WPKH Nested In P2SH)</span>
                                     </label>
                                 </div>
                                 <div class="form-group">
@@ -551,6 +456,123 @@
                                 </div>
                             </form>
                         </div>
+                        <div id="bip141" class="tab-pane">
+                            <form class="form-horizontal" role="form">
+                                <br>
+                                <div class="unavailable hidden">
+                                    <div class="form-group">
+                                        <div class="col-sm-2"></div>
+                                        <div class="col-sm-10">
+                                            <p>BIP141 is unavailable for this coin.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="available">
+                                    <div class="col-sm-2"></div>
+                                    <div class="col-sm-10">
+                                        <p>
+                                            For more info see the
+                                            <a href="https://github.com/bitcoin/bips/blob/master/bip-0141.mediawiki" target="_blank">BIP141 spec</a>
+                                        </p>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="bip141-path" class="col-sm-2 control-label">BIP32 Derivation Path</label>
+                                        <div class="col-sm-10">
+                                            <input id="bip141-path" type="text" class="bip141-path form-control" value="m/0">
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="col-sm-2 control-label">Script Semantics</label>
+                                        <div class="col-sm-10">
+                                            <select class="form-control bip141-semantics">
+                                                <option value="p2wpkh">P2WPKH</option>
+                                                <option value="p2wpkh-p2sh" selected>P2WPKH nested in P2SH</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div id="bip84" class="tab-pane">
+                            <form class="form-horizontal" role="form">
+                                <br>
+                                <div class="col-sm-2"></div>
+                                <div class="col-sm-10">
+                                    <p>
+                                        For more info see the
+                                        <a href="https://github.com/bitcoin/bips/blob/master/bip-0084.mediawiki" target="_blank">BIP84 spec</a>.
+                                    </p>
+                                </div>
+                                <div class="form-group">
+                                    <label for="purpose" class="col-sm-2 control-label">
+                                        Purpose
+                                    </label>
+                                    <div class="col-sm-10">
+                                        <input id="purpose" type="text" class="purpose form-control" value="84" readonly>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="coin" class="col-sm-2 control-label">
+                                        Coin
+                                    </label>
+                                    <div class="col-sm-10">
+                                        <input id="coin" type="text" class="coin form-control" value="0" readonly>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="account" class="col-sm-2 control-label">
+                                        Account
+                                    </label>
+                                    <div class="col-sm-10">
+                                        <input id="account" type="text" class="account form-control" value="0">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="change" class="col-sm-2 control-label">
+                                        External / Internal
+                                    </label>
+                                    <div class="col-sm-10">
+                                        <input id="change" type="text" class="change form-control" value="0">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label">
+                                    </label>
+                                    <div class="col-sm-10">
+                                        <p>The account extended keys can be used for importing to most BIP84 compatible wallets.</p>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="account-xprv" class="col-sm-2 control-label">
+                                        <span>Account Extended Private Key</span>
+                                    </label>
+                                    <div class="col-sm-10">
+                                        <textarea id="account-xprv" type="text" class="account-xprv form-control" readonly data-show-qr></textarea>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="account-xpub" class="col-sm-2 control-label">
+                                        <span>Account Extended Public Key</span>
+                                    </label>
+                                    <div class="col-sm-10">
+                                        <textarea id="account-xpub" type="text" class="account-xpub form-control" readonly data-show-qr></textarea>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-sm-2 control-label">
+                                    </label>
+                                    <div class="col-sm-10">
+                                        <p>The BIP32 derivation path and extended keys are the basis for the derived addresses.</p>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="bip84-path" class="col-sm-2 control-label">BIP32 Derivation Path</label>
+                                    <div class="col-sm-10">
+                                        <input id="bip84-path" type="text" class="path form-control" value="m/84'/0'/0'/0" readonly="readonly">
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                     <form class="form-horizontal" role="form">
                         <div class="form-group">
@@ -574,7 +596,7 @@
             <div class="row">
                 <div class="col-md-12">
                     <h2>Derived Addresses</h2>
-                    <p>Note these addreses are derived from the BIP32 Extended Key</p>
+                    <p>Note these addresses are derived from the BIP32 Extended Key</p>
                 </div>
                 <div class="col-md-12 use-bitpay-addresses-container hidden">
                     <div class="checkbox">
@@ -585,46 +607,76 @@
                     </div>
                 </div>
                 <div class="col-md-12">
-                    <table class="table table-striped">
-                        <thead>
-                            <th>
-                                <div class="input-group">
-                                    <span>Path</span>&nbsp;&nbsp;
-                                    <button class="index-toggle">Toggle</button>
-                                </div>
-                            </th>
-                            <th>
-                                <div class="input-group">
-                                    <span>Address</span>&nbsp;&nbsp;
-                                    <button class="address-toggle">Toggle</button>
-                                </div>
-                            </th>
-                            <th>
-                                <div class="input-group">
-                                    <span>Public Key</span>&nbsp;&nbsp;
-                                    <button class="public-key-toggle">Toggle</button>
-                                </div>
-                            </th>
-                            <th>
-                                <div class="input-group">
-                                    <span>Private Key</span>&nbsp;&nbsp;
-                                    <button class="private-key-toggle">Toggle</button>
-                                </div>
-                            </th>
-                        </thead>
-                        <tbody class="addresses monospace">
-                            <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
-                            <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
-                            <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
-                            <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
-                            <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
-                        </tbody>
-                    </table>
+                    <div class="checkbox">
+                        <label>
+                            <input type="checkbox" class="use-bip38">
+                            <span>Encrypt private keys using BIP38 and this password:</span>
+                        </label>
+                        <input class="bip38-password">
+                        <span>Enabling BIP38 means each key will take several minutes to generate.</span>
+                    </div>
+                </div>
+                <ul class="addresses-type nav nav-tabs" role="tablist">
+                    <li id="table-tab" class="active">
+                        <a href="#table" role="tab" data-toggle="tab">Table</a>
+                    </li>
+                    <li id="csv-tab">
+                        <a href="#csv" role="tab" data-toggle="tab">CSV</a>
+                    </li>
+                </ul>
+                <div class="addresses-type tab-content">
+                    <div id="table" class="tab-pane active">
+                        <div class="col-md-12">
+                            <table class="table table-striped">
+                                <thead>
+                                    <th>
+                                        <div class="input-group">
+                                            <span>Path</span>&nbsp;&nbsp;
+                                            <button class="index-toggle">Toggle</button>
+                                        </div>
+                                    </th>
+                                    <th>
+                                        <div class="input-group">
+                                            <span>Address</span>&nbsp;&nbsp;
+                                            <button class="address-toggle">Toggle</button>
+                                        </div>
+                                    </th>
+                                    <th>
+                                        <div class="input-group">
+                                            <span>Public Key</span>&nbsp;&nbsp;
+                                            <button class="public-key-toggle">Toggle</button>
+                                        </div>
+                                    </th>
+                                    <th>
+                                        <div class="input-group">
+                                            <span>Private Key</span>&nbsp;&nbsp;
+                                            <button class="private-key-toggle">Toggle</button>
+                                        </div>
+                                    </th>
+                                </thead>
+                                <tbody class="addresses monospace">
+                                    <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+                                    <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+                                    <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+                                    <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+                                    <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="csv" class="tab-pane">
+                        <div class="col-md-12">
+                            <textarea class="csv form-control" rows="25" readonly></textarea>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <span>Show more rows</span>:
+            <span>Show</span>
             <input type="number" class="rows-to-add" value="20">
-            <button class="more">Show</button>
+            <button class="more">more rows</button>
+            <span>starting from index</span>
+            <input type="number" class="more-rows-start-index">
+            <span>(leave blank to generate from next index)</span>
 
             <hr>
 
@@ -665,13 +717,16 @@
                     </p>
                     <h3 id="entropy-notes">Entropy</h3>
                     <p>
+                        <span>Entropy values should not include the BIP39 checksum. This is automatically added by the tool.</span>
+                    </p>
+                    <p>
                         <span>
                             Entropy values must be sourced from a
                             <a href="https://en.wikipedia.org/wiki/Random_number_generation" target="_blank">strong source of randomness</a>.
                         </span>
                         <span>This means flipping a fair coin, rolling a fair dice, noise measurements etc.</span>
                         <span>
-                            Do <strong>NOT</strong> use phrases from books, lyrics from songs, your birthday or steet address,
+                            Do <strong>NOT</strong> use phrases from books, lyrics from songs, your birthday or street address,
                             keyboard mashing, or anything you <i>think</i> is random, because chances are overwhelming it isn't
                             random enough for the needs of this tool.
                         </span>
@@ -828,12 +883,14 @@
         <script src="js/polyfill.es6.js"></script>
         <script src="js/basex.js"></script>
         <script src="js/unorm.js"></script>
-        <script src="js/jquery.min.js"></script>
-        <script src="js/bootstrap.min.js"></script>
+        <script src="js/jquery-3.2.1.js"></script>
+        <script src="js/bootstrap-3.3.7.js"></script>
         <script src="js/levenshtein.js"></script>
-        <script src="js/jquery.qrcode.min.js"></script>
-        <script src="js/bitcoinjs-3-1-1.js"></script>
+        <script src="js/kjua-0.1.1.min.js"></script>
+        <script src="js/bitcoinjs-3.3.2.js"></script>
         <script src="js/bitcoinjs-extensions.js"></script>
+        <script src="js/bitcoinjs-bip38-2.0.2.js"></script>
+        <script src="js/segwit-parameters.js"></script>
         <script src="js/ethereumjs-util.js"></script>
         <script src="js/ripple-util.js"></script>
         <script src="js/sjcl-bip39.js"></script>
@@ -844,6 +901,7 @@
         <script src="js/wordlist_chinese_traditional.js"></script>
         <script src="js/wordlist_french.js"></script>
         <script src="js/wordlist_italian.js"></script>
+        <script src="js/wordlist_korean.js"></script>
         <script src="js/jsbip39.js"></script>
         <script src="js/biginteger.js"></script>
         <script src="js/zxcvbn.js"></script>
